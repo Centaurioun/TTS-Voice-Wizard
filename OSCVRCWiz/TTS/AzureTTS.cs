@@ -9,9 +9,31 @@ using System.Threading.Tasks;
 using OSCVRCWiz.Settings;
 using OSCVRCWiz.Text;
 using Resources;
+using NAudio.Wave;
+using System.IO;
+using Swan.Logging;
+using OSCVRCWiz.Resources;
+using System.Text.Json;
+using Octokit;
 
 namespace OSCVRCWiz.TTS
+
 {
+    public class Voice
+    {
+        public string Name { get; set; }
+        public string DisplayName { get; set; }
+        public string LocalName { get; set; }
+        public string ShortName { get; set; }
+        public string Gender { get; set; }
+        public string Locale { get; set; }
+        public string LocaleName { get; set; }
+        public string SampleRateHertz { get; set; }
+        public string VoiceType { get; set; }
+        public string Status { get; set; }
+        public string WordsPerMinute { get; set; }
+        public List<string> StyleList { get; set; }
+    }
     public class AzureTTS
     {
         // public static Microsoft.CognitiveServices.Speech.SpeechSynthesizer synthesizerVoice;
@@ -20,6 +42,7 @@ namespace OSCVRCWiz.TTS
         public static Dictionary<string, string[]> AllVoices4Language = new Dictionary<string, string[]>();
         public static Dictionary<string, string[]> RememberLanguageVoices = new Dictionary<string, string[]>();
         public static bool firstVoiceLoad = true;
+       // public static SpeechSynthesizer synthesizerVoice;
 
         public static async Task SynthesisGetAvailableVoicesAsync(string fromLanguageFullname)
         {
@@ -31,12 +54,12 @@ namespace OSCVRCWiz.TTS
 
             if (!RememberLanguageVoices.ContainsKey(fromLanguageFullname))
             {
-                var config = SpeechConfig.FromSubscription(AzureRecognition.YourSubscriptionKey, AzureRecognition.YourServiceRegion);
+                //var config = SpeechConfig.FromSubscription(AzureRecognition.YourSubscriptionKey, AzureRecognition.YourServiceRegion);
 
                 // Creates a speech synthesizer
-                using (var synthesizer = new SpeechSynthesizer(config, null as AudioConfig))
-                {
-                    var ts = new AzureRecognition();
+             //  using (var synthesizer = new SpeechSynthesizer(config, null as AudioConfig))
+             //   {
+                  //  var ts = new AzureRecognition();
                     //   var language = ts.toLanguageID(fromLanguageFullname);
 
                     List<string> localList = new List<string>();  //keep commented voices and release if they are widely requested (idea with new releasing all voices is to reduce load time)
@@ -86,7 +109,7 @@ namespace OSCVRCWiz.TTS
                             //   localList.Add("en-IN");
                             //   localList.Add("en-KE");
                             //    localList.Add("en-NZ");
-                            //   localList.Add("en-PH");
+                               localList.Add("en-PH");
                             //    localList.Add("en-SG");
                             //   localList.Add("en-TZ");
                             //   localList.Add("en-ZA");
@@ -159,48 +182,82 @@ namespace OSCVRCWiz.TTS
                         default: localList.Add("en-US"); break; // if translation to english happens something is wrong
                     }
                     List<string> voiceList = new List<string>();
-                    foreach (var local in localList)
+                    /*   foreach (var local in localList)
+                       {
+                           using (var result = await synthesizer.GetVoicesAsync(local))
+                           {
+                               if (result.Reason == ResultReason.VoicesListRetrieved)
+                               {
+                                   OutputText.outputLog("[Voices successfully retrieved from Azure]", Color.Green);
+
+
+                                   foreach (var voice in result.Voices)
+                                   {
+
+                                       //  ot.outputLog(MainForm,voice.LocalName);
+                                       AllVoices4Language.Add(voice.ShortName, voice.StyleList);
+                                       VoiceWizardWindow.MainFormGlobal.comboBox2.Items.Add(voice.ShortName);
+                                       voiceList.Add(voice.ShortName);
+                                       //   foreach (KeyValuePair<string, string[]> kvp in AllVoices4Language)
+                                       //  {
+                                       //   ot.outputLog(MainForm, kvp.Key.ToString());
+                                       // foreach (string style in kvp.Value)
+                                       //  {
+                                       //  ot.outputLog(MainForm, style);
+                                       //  }
+                                       //    }
+                                       //  ot.outputLog(MainForm, voice.ShortName);
+                                       //ot.outputLog(MainForm, voice.StyleList);
+                                       //  foreach (var style in voice.StyleList)
+                                       // {
+                                       //     ot.outputLog(MainForm, style);
+                                       // }
+                                   }
+                               }
+                               else if (result.Reason == ResultReason.Canceled)
+                               {
+                                   OutputText.outputLog($"CANCELED: ErrorDetails=[{result.ErrorDetails}]", Color.Red);
+                                   OutputText.outputLog($"CANCELED: Did you update the Azure subscription info?", Color.Red);
+                               }
+                           }
+                       }*/
+                    foreach (var locale in localList)
                     {
-                        using (var result = await synthesizer.GetVoicesAsync(local))
+                        // replace with the path to the JSON file
+                        string jsonFilePath = "voices/azureVoices.json";
+
+                        // read the JSON data from the file
+                        string jsonData = File.ReadAllText(jsonFilePath);
+
+                        // deserialize the JSON data into an array of Voice objects
+                        Voice[] voices = JsonSerializer.Deserialize<Voice[]>(jsonData);
+
+                        // replace with the desired locale
+                       // string locale = "en-GB";
+
+                        foreach (var voice in voices)
                         {
-                            if (result.Reason == ResultReason.VoicesListRetrieved)
+                            if (voice.Locale == locale)
                             {
-                                OutputText.outputLog("[Voices successfully retrieved from Azure]", Color.Green);
+                                List<string> styleList = new List<string>();
 
-
-                                foreach (var voice in result.Voices)
+                                if (voice.StyleList != null)
                                 {
-
-                                    //  ot.outputLog(MainForm,voice.LocalName);
-                                    AllVoices4Language.Add(voice.ShortName, voice.StyleList);
-                                    VoiceWizardWindow.MainFormGlobal.comboBox2.Items.Add(voice.ShortName);
-                                    voiceList.Add(voice.ShortName);
-                                    //   foreach (KeyValuePair<string, string[]> kvp in AllVoices4Language)
-                                    //  {
-                                    //   ot.outputLog(MainForm, kvp.Key.ToString());
-                                    // foreach (string style in kvp.Value)
-                                    //  {
-                                    //  ot.outputLog(MainForm, style);
-                                    //  }
-                                    //    }
-                                    //  ot.outputLog(MainForm, voice.ShortName);
-                                    //ot.outputLog(MainForm, voice.StyleList);
-                                    //  foreach (var style in voice.StyleList)
-                                    // {
-                                    //     ot.outputLog(MainForm, style);
-                                    // }
+                                    styleList.AddRange(voice.StyleList);
                                 }
+
+
+                                AllVoices4Language.Add(voice.ShortName, styleList.ToArray());
+                                VoiceWizardWindow.MainFormGlobal.comboBox2.Items.Add(voice.ShortName);
+                                voiceList.Add(voice.ShortName);
                             }
-                            else if (result.Reason == ResultReason.Canceled)
-                            {
-                                OutputText.outputLog($"CANCELED: ErrorDetails=[{result.ErrorDetails}]", Color.Red);
-                                OutputText.outputLog($"CANCELED: Did you update the Azure subscription info?", Color.Red);
-                            }
+
                         }
+                        
                     }
                     RememberLanguageVoices.Add(fromLanguageFullname, voiceList.ToArray());
 
-                }
+                
             }
             else
             {
@@ -227,25 +284,19 @@ namespace OSCVRCWiz.TTS
 
         }
 
-        public static async Task SynthesizeAudioAsync(string text) //TTS Outputs through speakers //can not change voice style
+        public static async Task SynthesizeAudioAsync(TTSMessageQueue.TTSMessage TTSMessageQueued, CancellationToken ct = default) //TTS Outputs through speakers //can not change voice style
         {
             try
             {
-                string style = "normal";
-                string rate = "default";
-                string pitch = "default";
-                string volume = "default";
-                string voice = "Sara";
-                VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
-                {
-                    if (!string.IsNullOrWhiteSpace(VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString())) { style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString(); }
-                    if (!string.IsNullOrWhiteSpace(VoiceWizardWindow.MainFormGlobal.comboBoxRate.Text.ToString())) { rate = VoiceWizardWindow.MainFormGlobal.comboBoxRate.Text.ToString(); }
-                    if (!string.IsNullOrWhiteSpace(VoiceWizardWindow.MainFormGlobal.comboBoxPitch.Text.ToString())) { pitch = VoiceWizardWindow.MainFormGlobal.comboBoxPitch.Text.ToString(); }
-                    if (!string.IsNullOrWhiteSpace(VoiceWizardWindow.MainFormGlobal.comboBoxVolume.Text.ToString())) { volume = VoiceWizardWindow.MainFormGlobal.comboBoxVolume.Text.ToString(); }
-                    if (!string.IsNullOrWhiteSpace(VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString())) { voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString(); }
+                string style = TTSMessageQueued.Style;
+                int rate = TTSMessageQueued.Speed;
+                int pitch = TTSMessageQueued.Pitch;
+                int volume = TTSMessageQueued.Volume;
+                string voice = TTSMessageQueued.Voice;
 
 
-                });
+
+             
 
 
                 var config = SpeechConfig.FromSubscription(AzureRecognition.YourSubscriptionKey, AzureRecognition.YourServiceRegion);
@@ -263,38 +314,29 @@ namespace OSCVRCWiz.TTS
 
                 // https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support#speaker-recognition
 
-                string ratexslow = "<prosody rate=\"x-slow\">"; //1
-                string rateslow = "<prosody rate=\"slow\">"; //2
-                string ratemedium = "<prosody rate=\"medium\">"; //3
-                string ratefast = "<prosody rate=\"fast\">"; //4
-                string ratexfast = "<prosody rate=\"x-fast\">"; //5
+                var ratePercent = (int)Math.Floor(((0.5f + rate * 0.1f) - 1) * 100);
+                var pitchPercent = (int)Math.Floor(((0.5f + pitch * 0.1f) - 1) * 100);
+                var volumePercent = (int)Math.Floor(((volume * 0.1f) - 1) * 100);
 
-                string pitchxlow = "<prosody pitch=\"x-low\">"; //1
-                string pitchlow = "<prosody pitch=\"low\">"; //2
-                string pitchmedium = "<prosody pitch=\"medium\">"; //3
-                string pitchhigh = "<prosody pitch=\"high\">"; //4
-                string pitchxhigh = "<prosody pitch=\"x-high\">"; //5
+                string rateString = "<prosody rate=\"" + ratePercent + "%\">"; //1
+                string pitchString = "<prosody pitch=\"" + pitchPercent + "%\">"; //1
+                string volumeString = "<prosody volume=\"" + volumePercent + "%\">"; //1
 
-                string volumexlow = "<prosody volume=\"x-soft\">"; //1
-                string volumelow = "<prosody volume=\"soft\">"; //2
-                string volumemedium = "<prosody volume=\"medium\">"; //3
-                string volumehigh = "<prosody volume=\"loud\">"; //4
-                string volumexhigh = "<prosody volume=\"x-loud\">"; //5
-
-                Debug.WriteLine("rate: " + rate);
-                Debug.WriteLine("pitch: " + pitch);
-                Debug.WriteLine("volume: " + volume);
+                Debug.WriteLine("rate: " + ratePercent);
+                Debug.WriteLine("pitch: " + pitchPercent);
+                Debug.WriteLine("volume: " + volumePercent);
                 Debug.WriteLine("voice: " + voice);
                 Debug.WriteLine("style: " + style);
-                Debug.WriteLine("text: " + text);
+                Debug.WriteLine("text: " + TTSMessageQueued.text);
 
 
-                var audioConfig = AudioConfig.FromSpeakerOutput(AudioDevices.currentOutputDevice);
-                if (AudioDevices.currentOutputDeviceName == "Default")
-                {
-                    audioConfig = AudioConfig.FromDefaultSpeakerOutput();
-
-                }
+                //  var audioConfig = AudioConfig.FromSpeakerOutput(AudioDevices.currentOutputDevice);
+                AudioOutputStream stream = AudioOutputStream.CreatePullStream();//this allows for instant synthesis for naudio output
+                var audioConfig = AudioConfig.FromStreamOutput(stream);//this allows for instant synthesis for naudio output
+              //  if (AudioDevices.currentOutputDeviceName == "Default")
+              //  {
+              //      audioConfig = AudioConfig.FromDefaultSpeakerOutput();
+              //  }
                
 
                 var synthesizerVoice = new SpeechSynthesizer(config, audioConfig);
@@ -314,49 +356,137 @@ namespace OSCVRCWiz.TTS
                     ssml0 += "<mstts:express-as style=\"" + style + "\">";
 
                 }
-                if (rate != "default")
+                if (rate != 5)//5 = default /middle of track bar
                 {
-                    if (rate == "x-slow") { ssml0 += ratexslow; }
-                    if (rate == "slow") { ssml0 += rateslow; }
-                    if (rate == "medium") { ssml0 += ratemedium; }
-                    if (rate == "fast") { ssml0 += ratefast; }
-                    if (rate == "x-fast") { ssml0 += ratexfast; }
+                    ssml0 += rateString;
+
 
                 }
-                if (pitch != "default")
+                if (pitch != 5)
                 {
-                    if (pitch == "x-low") { ssml0 += pitchxlow; }
-                    if (pitch == "low") { ssml0 += pitchlow; }
-                    if (pitch == "medium") { ssml0 += pitchmedium; }
-                    if (pitch == "high") { ssml0 += pitchhigh; }
-                    if (pitch == "x-high") { ssml0 += pitchxhigh; }
+                    ssml0 += pitchString;
+
 
                 }
-                if (volume != "default")
+                if (volume != 10)
                 {
-                    if (volume == "x-soft") { ssml0 += volumexlow; }
-                    if (volume == "soft") { ssml0 += volumelow; }
-                    if (volume == "medium") { ssml0 += volumemedium; }
-                    if (volume == "loud") { ssml0 += volumehigh; }
-                    if (volume == "x-loud") { ssml0 += volumexhigh; }
+                    ssml0 += volumeString;
+
 
                 }
-                ssml0 += text;
-                if (rate != "default") { ssml0 += "</prosody>"; }
-                if (pitch != "default") { ssml0 += "</prosody>"; }
-                if (volume != "default") { ssml0 += "</prosody>"; }
+                ssml0 += TTSMessageQueued.text;
+                if (rate != 5) { ssml0 += "</prosody>"; }
+                if (pitch != 5) { ssml0 += "</prosody>"; }
+                if (volume != 10) { ssml0 += "</prosody>"; }
                 if (style != "normal") { ssml0 += "</mstts:express-as>"; }
                 ssml0 += "</voice>";
                 ssml0 += "</speak>";
 
                 Debug.WriteLine(ssml0);
 
+               // var result = await synthesizerVoice.
+
+                var result = await synthesizerVoice.SpeakSsmlAsync(ssml0);
                 
-                var result = await synthesizerVoice.SpeakSsmlAsync(ssml0).ConfigureAwait(false);
                 if (result.Reason == ResultReason.SynthesizingAudioCompleted)
                 {
-                    Debug.WriteLine($"[Speech synthesized to speaker for text: {text}]");
+                    Debug.WriteLine($"[Speech synthesized to speaker for text: {TTSMessageQueued.text}]");
                     // ot.outputLog(MainForm, $"[Azure Speech Synthesized]");
+                   
+                        try
+                        {
+                        MemoryStream memoryStream = new MemoryStream(result.AudioData);
+
+                        MemoryStream memoryStream2 = new MemoryStream();
+                        memoryStream.Flush();
+                        memoryStream.Seek(0, SeekOrigin.Begin);// go to begining before copying
+                        memoryStream.CopyTo(memoryStream2);
+
+
+                        if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonSaveToWav.Checked)
+                        {
+                            MemoryStream memoryStream3 = new MemoryStream();
+                            memoryStream.Flush();
+                            memoryStream.Seek(0, SeekOrigin.Begin);// go to begining before copying
+                            memoryStream.CopyTo(memoryStream3);
+
+                            memoryStream3.Flush();
+                            memoryStream3.Seek(0, SeekOrigin.Begin);// go to begining before copying
+                            audioFiles.writeAudioToOutputWav(memoryStream3);
+                        }
+                        ////
+
+
+                        memoryStream.Flush();
+                        memoryStream.Seek(0, SeekOrigin.Begin);// go to begining before copying
+                        WaveFileReader wav = new WaveFileReader(memoryStream);
+
+
+                        memoryStream2.Flush();
+                        memoryStream2.Seek(0, SeekOrigin.Begin);// go to begining before copying
+                        WaveFileReader wav2 = new WaveFileReader(memoryStream2);
+
+
+
+                        var AnyOutput = new WaveOut();
+                        AnyOutput.DeviceNumber = AudioDevices.getCurrentOutputDevice();
+                        AnyOutput.Init(wav);
+                        AnyOutput.Play();
+                        ct.Register(async () => AnyOutput.Stop());
+                        var AnyOutput2 = new WaveOut();
+                        if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonUse2ndOutput.Checked == true)//output 2
+                        {
+                         //  AnyOutput2 = new WaveOut();
+                            AnyOutput2.DeviceNumber = AudioDevices.getCurrentOutputDevice2();
+                            AnyOutput2.Init(wav2);
+                            AnyOutput2.Play();
+                           
+                            ct.Register(async () => AnyOutput2.Stop());
+                            while (AnyOutput2.PlaybackState == PlaybackState.Playing)
+                            {
+                                Thread.Sleep(2000);
+                            }
+                        }
+                        while (AnyOutput.PlaybackState == PlaybackState.Playing)
+                        {
+                            Thread.Sleep(2000);
+                        }
+                        if(AnyOutput.PlaybackState == PlaybackState.Stopped)
+                        {
+                         
+                            AnyOutput.Stop();
+                            AnyOutput.Dispose();
+                           
+                           // AnyOutput = null;
+                          //  if (AnyOutput2 != null)
+                          //  {
+                                AnyOutput2.Stop();
+                                AnyOutput2.Dispose();
+                            //    AnyOutput2 = null;
+                         //   }
+                            memoryStream.Dispose();
+                            memoryStream = null;
+                          //  memoryStream2.Dispose();
+                            wav.Dispose();
+                            wav2.Dispose();
+                            wav = null;
+                            wav2 = null;
+                            synthesizerVoice.Dispose();
+                            synthesizerVoice = null;
+                            stream.Dispose();
+                            stream = null;
+
+                            ct = new();
+                            Debug.WriteLine("azure dispose successful");
+                            TTSMessageQueue.PlayNextInQueue();
+                        }
+                    }
+                        catch(Exception ex)
+                        {
+                            OutputText.outputLog("[Azure Ouput Device *AUDIO* Error: " + ex.Message + "]", Color.Red);
+                        TTSMessageQueue.PlayNextInQueue();
+                    }
+                    
                 }
                 else if (result.Reason == ResultReason.Canceled)
                 {
@@ -373,6 +503,7 @@ namespace OSCVRCWiz.TTS
                         Debug.WriteLine($"[CANCELED: Did you update the subscription info?]");
                         OutputText.outputLog($"[CANCELED: Did you update the subscription info?]", Color.Red);
                     }
+                    TTSMessageQueue.PlayNextInQueue();
                 }
 
 
@@ -380,8 +511,28 @@ namespace OSCVRCWiz.TTS
             }
             catch (Exception ex)
             {
-                MessageBox.Show("No valid subscription key given or speech service has been disabled; " + ex.Message.ToString());
+                //  MessageBox.Show("No valid subscription key given or speech service has been disabled; " + ex.Message.ToString());
+                OutputText.outputLog("[Azure Error: " + ex.Message + "]", Color.Red);
+                OutputText.outputLog("[You may be missing an Azure Key, make sure to follow the setup guide: https://github.com/VRCWizard/TTS-Voice-Wizard/wiki/Azure-Speech-Service ]", Color.DarkOrange);
+                TTSMessageQueue.PlayNextInQueue();
             }
         }
-    }
+        public static async void AzurePlayAudioPro(string audioString, TTSMessageQueue.TTSMessage TTSMessageQueued, CancellationToken ct)
+        {
+            try
+            {
+                var audiobytes = Convert.FromBase64String(audioString);
+                MemoryStream memoryStream = new MemoryStream(audiobytes);
+
+                AudioDevices.playSSMLWaveStream(memoryStream, TTSMessageQueued, ct);
+                memoryStream.Dispose();
+            }
+            catch (Exception ex)
+            {
+                OutputText.outputLog("[Azure Ouput Device *AUDIO* Error: " + ex.Message + "]", Color.Red);
+                TTSMessageQueue.PlayNextInQueue();
+            }
+        }
+
+        }
 }

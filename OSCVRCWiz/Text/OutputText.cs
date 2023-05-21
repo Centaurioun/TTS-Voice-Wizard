@@ -83,81 +83,85 @@ namespace OSCVRCWiz.Text
         }
         public static async void outputTextFile(string textstring)
         {
-            await File.WriteAllTextAsync(@"TextOut\OBSText.txt", textstring);
+            try
+            {
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOBSText.Checked == true)
+                {
+                    await File.WriteAllTextAsync(@"TextOut\OBSText.txt", textstring);
+                   
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonHideDelay2.Checked) //hide
+                    {
+                        VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                OutputText.outputLog("[OBSText File Error: " + ex.Message + ". Try moving folder location.]", Color.Red);
+            }
         }
 
         public static async void outputVRChatSpeechBubbles(string textstring, string type)
         {
-
-
-
-            // byte[] bytes = Encoding.Default.GetBytes(textstring);
-            // textstring = Encoding.UTF8.GetString(bytes);
-
-
-            System.Diagnostics.Debug.WriteLine("Encoded UTF-8: " + textstring);
-
-
-            var typingbubble = new OscMessage("/chatbox/typing", false);//this is turned on as soon as you press the STTTS button and turned off here
-            var messageSpeechBubble = new OscMessage("/chatbox/input", textstring, true, false);
-            //   var messageSpeechBubble = new SharpOSC.OscMessage("/chatbox/input", textstring);
-            //testing if error message appears /what value is defaulted to if not specified
-            if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonShowKeyboard.Checked == true)
+            try
             {
-                messageSpeechBubble = new OscMessage("/chatbox/input", textstring, false, false);
 
-            }
-            if (type == "tts" && VoiceWizardWindow.MainFormGlobal.rjToggleSoundNotification.Checked == true) //handles sound notification output so it is only sent for TTS messages (i dont know how annoying this will be) //also if message is not tts keyboard can not be shown
-            {
-                messageSpeechBubble = new OscMessage("/chatbox/input", textstring, true, true);
 
+
+                // byte[] bytes = Encoding.Default.GetBytes(textstring);
+                // textstring = Encoding.UTF8.GetString(bytes);
+
+
+                System.Diagnostics.Debug.WriteLine("Encoded UTF-8: " + textstring);
+
+
+                var typingbubble = new OscMessage("/chatbox/typing", false);//this is turned on as soon as you press the STTTS button and turned off here
+                var messageSpeechBubble = new OscMessage("/chatbox/input", textstring, true, false);
+                //   var messageSpeechBubble = new SharpOSC.OscMessage("/chatbox/input", textstring);
+                //testing if error message appears /what value is defaulted to if not specified
                 if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonShowKeyboard.Checked == true)
                 {
-                    messageSpeechBubble = new OscMessage("/chatbox/input", textstring, false, true);
+                    messageSpeechBubble = new OscMessage("/chatbox/input", textstring, false, false);
+
                 }
-            }
-            if (type != "spotify"&& type != "bpm" && type != "media")// so in otherowrds if type is tts it disables typing indicator
-            {
-                OSC.OSCSender.Send(typingbubble);
-            }
-            OSC.OSCSender.Send(messageSpeechBubble);
-
-            if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == false)//why is this here?
-            {
-                VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
-            }
-
-            if (type == "spotify")
-            {
-                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == false)
+                if (type == "tts" && VoiceWizardWindow.MainFormGlobal.rjToggleSoundNotification.Checked == true) //handles sound notification output so it is only sent for TTS messages (i dont know how annoying this will be) //also if message is not tts keyboard can not be shown
                 {
-                    SpotifyAddon.lastSong = SpotifyAddon.title;
+                    messageSpeechBubble = new OscMessage("/chatbox/input", textstring, true, true);
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonShowKeyboard.Checked == true)
+                    {
+                        messageSpeechBubble = new OscMessage("/chatbox/input", textstring, false, true);
+                    }
+                }
+                if (type != "spotify" && type != "bpm" && type != "media")// so in otherowrds if type is tts it disables typing indicator
+                {
+                    OSC.OSCSender.Send(typingbubble);
+                }
+                OSC.OSCSender.Send(messageSpeechBubble);
+
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == false)//why is this here?
+                {
+                    VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
                 }
 
-            }
-            if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonHideDelay2.Checked) //inactive hide
-            {
-                VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
+                if (type == "spotify")
+                {
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == false)
+                    {
+                        SpotifyAddon.lastSong = SpotifyAddon.title;
+                        WindowsMedia.previousTitle = WindowsMedia.mediaTitle;
+                    }
 
-            }
-            else
-            {
-                //this else is meant as a crude fix to output breaking when hide text delay is turned off
-                //hide tet delay is recommened with media output
-                OSCListener.pauseBPM = false;
-                SpotifyAddon.pauseSpotify = false;
-            }
-
-        }
-        public static async Task outputGreenScreen(string textstring, string type)
-        {
-            VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
-            {
-                VoiceWizardWindow.MainFormGlobal.pf.customrtb1.Text = textstring;
-                VoiceWizardWindow.MainFormGlobal.pf.customrtb1.SelectionAlignment = HorizontalAlignment.Center;
-
+                }
                 if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonHideDelay2.Checked) //inactive hide
                 {
+                    if (type == "bpm")
+                    {
+                        SpotifyAddon.pauseSpotify = true;
+                        //this is for when using counters or bpm i guess too, it makes them pause spotify(media output)
+                    }
+
                     VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
 
                 }
@@ -168,13 +172,43 @@ namespace OSCVRCWiz.Text
                     OSCListener.pauseBPM = false;
                     SpotifyAddon.pauseSpotify = false;
                 }
+            }
+            catch(Exception ex)
+            {
+                OutputText.outputLog("[VRC Chatbox OSC Error: " + ex.Message + "]", Color.Red);
+                OutputText.outputLog("[Error usually caused by VPN.]", Color.DarkOrange);
 
-            });
+            }
+
+        }
+        public static async Task outputGreenScreen(string textstring, string type)
+            {
+                /* VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+                 {
+                     VoiceWizardWindow.MainFormGlobal.pf.customrtb1.Text = textstring;
+                     VoiceWizardWindow.MainFormGlobal.pf.customrtb1.SelectionAlignment = HorizontalAlignment.Center;
+
+                     if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonHideDelay2.Checked) //inactive hide
+                     {
+                         VoiceWizardWindow.MainFormGlobal.hideTimer.Change(eraseDelay, 0);
+
+                     }
+                     else
+                     {
+                         //this else is meant as a crude fix to output breaking when hide text delay is turned off
+                         //hide tet delay is recommened with media output
+                         OSCListener.pauseBPM = false;
+                         SpotifyAddon.pauseSpotify = false;
+                     }
+
+                 });*/
+            
 
 
         }
         public static async void outputVRChat(string textstringbefore, string type)
         {
+            try { 
             if (type == "tts" || type == "tttAdd")
             {
                 lastKatString = textstringbefore;
@@ -190,28 +224,7 @@ namespace OSCVRCWiz.Text
             if (VoiceWizardWindow.MainFormGlobal.rjToggleButton3.Checked == true)
             {
                 textstringbefore = EmojiAddon.DoEmojiReplacement(textstringbefore);
-              /*  textstringbefore = textstringbefore.Replace("<3", "ぬ");
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox1.Text.ToString(), "あう", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox2.Text.ToString(), "えお", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox3.Text.ToString(), "やゆ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox4.Text.ToString(), "よわ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox5.Text.ToString(), "をほ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox6.Text.ToString(), "へた", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox7.Text.ToString(), "てい", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox8.Text.ToString(), "すか", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox9.Text.ToString(), "んな", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox10.Text.ToString(), "にら", RegexOptions.IgnoreCase);
-                //////////////
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox11.Text.ToString(), "せち", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox12.Text.ToString(), "とし", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox13.Text.ToString(), "はき", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox14.Text.ToString(), "くま", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox15.Text.ToString(), "のり", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox16.Text.ToString(), "れけ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox17.Text.ToString(), "むつ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox18.Text.ToString(), "さそ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox19.Text.ToString(), "ひこ", RegexOptions.IgnoreCase);
-                textstringbefore = Regex.Replace(textstringbefore, VoiceWizardWindow.MainFormGlobal.EmojiBox20.Text.ToString(), "みも", RegexOptions.IgnoreCase);*/
+
             }
 
 
@@ -273,7 +286,7 @@ namespace OSCVRCWiz.Text
                     if (numKATSyncParameters == "16")
                     {
                         textstring += "        ";
-                    };
+                    }
                     break;
                 case 4:
                     textstring += "";
@@ -284,7 +297,7 @@ namespace OSCVRCWiz.Text
                     if (numKATSyncParameters == "16")
                     {
                         textstring += "        ";
-                    };
+                    }
                     break;
                 case 5:
                     textstring += "   ";
@@ -306,12 +319,12 @@ namespace OSCVRCWiz.Text
                     }; break;
                 case 8: textstring += "        "; break; //16 mode
                 case 9: textstring += "       "; break; //16 mode
-                case 10: textstring += "      "; break; //16 mode
-                case 11: textstring += "     "; break; //16 mode
-                case 12: textstring += "    "; break; //16 mode
-                case 13: textstring += "   "; break; //16 mode
-                case 14: textstring += "  "; break; //16 mode
-                case 15: textstring += " "; break; //16 mode
+                case 10:textstring += "      "; break; //16 mode
+                case 11:textstring += "     "; break; //16 mode
+                case 12:textstring += "    "; break; //16 mode
+                case 13:textstring += "   "; break; //16 mode
+                case 14:textstring += "  "; break; //16 mode
+                case 15:textstring += " "; break; //16 mode
                 default:; break;
             }
 
@@ -393,24 +406,37 @@ namespace OSCVRCWiz.Text
 
                     if (previousRequestType == "spotify")
                     {
-                        if (SpotifyAddon.title == SpotifyAddon.lastSong)
-                        {
-                            System.Diagnostics.Debug.WriteLine("spotify case ran");
-                            Task.Delay(50).Wait();
-                            //  MainForm.sender3.Send(message1);//remove after testing
-                        }
-                        else
-                        {
-                            OSC.OSCSender.Send(message1);
-                        }
+                            if (SpotifyAddon.title == SpotifyAddon.lastSong)
+                            {
+                                System.Diagnostics.Debug.WriteLine("spotify case ran");
+                               // Task.Delay(50).Wait();
+                                //  MainForm.sender3.Send(message1);//remove after testing
+                            }
+                            else
+                            {
+                                Task.Delay(50).Wait();
+                                OSC.OSCSender.Send(message1);
+                            }
+                            if ( WindowsMedia.previousTitle == WindowsMedia.mediaTitle)
+                            {
+                                System.Diagnostics.Debug.WriteLine("spotify case ran");
+                                //Task.Delay(50).Wait();
+                                //  MainForm.sender3.Send(message1);//remove after testing
+                            }
+                            else
+                            {
+                                Task.Delay(100).Wait();
+                                OSC.OSCSender.Send(message1);
+                            }
 
-                    }
+                        }
                     else
                     {
                         OSC.OSCSender.Send(message1);
                     }
-                    SpotifyAddon.lastSong = SpotifyAddon.title;
-                    break;
+                        SpotifyAddon.lastSong = SpotifyAddon.title;
+                        WindowsMedia.previousTitle = WindowsMedia.mediaTitle;
+                        break;
                 case "tttAdd": break;
                 case "tttRefresh": break;
                 default:
@@ -1044,6 +1070,13 @@ namespace OSCVRCWiz.Text
                 OutputText.outputVRChat(OutputText.lastKatString, "tttRefresh");
                 
             }
+            }
+            catch (Exception ex)
+            {
+                OutputText.outputLog("[VRC KAT OSC Error: " + ex.Message + "]", Color.Red);
+                OutputText.outputLog("[Error usually caused by VPN.]", Color.DarkOrange);
+            }
+
 
 
 
