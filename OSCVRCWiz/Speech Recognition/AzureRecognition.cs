@@ -13,6 +13,7 @@ using OSCVRCWiz.Text;
 using Resources;
 using OSCVRCWiz.Resources;
 using OSCVRCWiz.Addons;
+using CoreOSC;
 
 namespace OSCVRCWiz
 {
@@ -157,7 +158,13 @@ namespace OSCVRCWiz
                 {
                     Console.WriteLine(eventArgs.Result.Text);
                    // var ot = new OutputText(); 
-                    Task.Run(() => OutputText.outputLog("[Speech Recognition Canceled (Translating): " + eventArgs.Result.Text + " Reason: " + eventArgs.Result.Reason.ToString() + " Error Details: " + eventArgs.ErrorDetails.ToString() + "]", Color.Red));
+                    Task.Run(() => OutputText.outputLog("[Azure Speech Recognition Canceled (Translating): " + eventArgs.Result.Text + " Reason: " + eventArgs.Result.Reason.ToString() + " Error Details: " + eventArgs.ErrorDetails.ToString() + "]", Color.Red));
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                        OSC.OSCSender.Send(sttListening);
+                    }
                 };
 
                 translationRecognizer1.Recognized += (sender, eventArgs) =>
@@ -171,16 +178,50 @@ namespace OSCVRCWiz
                         string translatedString = speechRecognitionResult.Translations[toLanguage]; //Dictation string tranlated
 
 
-                        Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "Azure Translate",translatedString));
+                        //   Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "Azure Translate",translatedString));
+                        TTSMessageQueue.TTSMessage TTSMessageQueued = new TTSMessageQueue.TTSMessage();
+                        VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+                        {
+                            TTSMessageQueued.text = text;
+                            TTSMessageQueued.TTSMode = VoiceWizardWindow.MainFormGlobal.comboBoxTTSMode.Text.ToString();
+                            TTSMessageQueued.Voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString();
+                            TTSMessageQueued.Accent = VoiceWizardWindow.MainFormGlobal.comboBox5.Text.ToString();
+                            TTSMessageQueued.Style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString();
+                            TTSMessageQueued.Pitch = VoiceWizardWindow.MainFormGlobal.trackBarPitch.Value;
+                            TTSMessageQueued.Speed = VoiceWizardWindow.MainFormGlobal.trackBarSpeed.Value;
+                            TTSMessageQueued.Volume = VoiceWizardWindow.MainFormGlobal.trackBarVolume.Value;
+                            TTSMessageQueued.SpokenLang = VoiceWizardWindow.MainFormGlobal.comboBox4.Text.ToString();
+                            TTSMessageQueued.TranslateLang = VoiceWizardWindow.MainFormGlobal.comboBox3.Text.ToString();
+                            TTSMessageQueued.STTMode = "Azure Translate";
+                            TTSMessageQueued.AzureTranslateText = translatedString;
+                        });
+
+
+                        if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonQueueSystem.Checked == true)
+                        {
+                            TTSMessageQueue.Enqueue(TTSMessageQueued);
+                        }
+                        else
+                        {
+                            Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(TTSMessageQueued));
+                        }
 
                     }
 
                 };
                 speechRecognizer1.Canceled += (sender, eventArgs) =>
                 {
-                    Console.WriteLine(eventArgs.Result.Text);
+                   // Console.WriteLine(eventArgs.Result.Text);
                    // var ot = new OutputText();
-                    Task.Run(() => OutputText.outputLog("[Speech Recognition Canceled: " + eventArgs.Result.Text + " Reason: " + eventArgs.Result.Reason.ToString() + " Error Details: " + eventArgs.ErrorDetails.ToString() + "]", Color.Red));
+                    Task.Run(() => OutputText.outputLog("[Azure Speech Recognition Canceled: " + eventArgs.Result.Text + " Reason: " + eventArgs.Result.Reason.ToString() + " Error Details: " + eventArgs.ErrorDetails.ToString() + "]", Color.Red));
+                    OutputText.outputLog("[If this issue occurs often try searching the discord server. The solution has likely already been documented]", Color.DarkOrange);
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                        OSC.OSCSender.Send(sttListening);
+                    }
+
                 };
                 speechRecognizer1.Recognized += (sender, eventArgs) =>
                 {
@@ -189,7 +230,34 @@ namespace OSCVRCWiz
                         var text = eventArgs.Result.Text; //Dictation string
 
                         
-                        Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text,"Azure"));
+                    //    Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text,"Azure"));
+
+                        TTSMessageQueue.TTSMessage TTSMessageQueued = new TTSMessageQueue.TTSMessage();
+                        VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+                        {
+                            TTSMessageQueued.text = text;
+                            TTSMessageQueued.TTSMode = VoiceWizardWindow.MainFormGlobal.comboBoxTTSMode.Text.ToString();
+                            TTSMessageQueued.Voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString();
+                            TTSMessageQueued.Accent = VoiceWizardWindow.MainFormGlobal.comboBox5.Text.ToString();
+                            TTSMessageQueued.Style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString();
+                            TTSMessageQueued.Pitch = VoiceWizardWindow.MainFormGlobal.trackBarPitch.Value;
+                            TTSMessageQueued.Speed = VoiceWizardWindow.MainFormGlobal.trackBarSpeed.Value;
+                            TTSMessageQueued.Volume = VoiceWizardWindow.MainFormGlobal.trackBarVolume.Value;
+                            TTSMessageQueued.SpokenLang = VoiceWizardWindow.MainFormGlobal.comboBox4.Text.ToString();
+                            TTSMessageQueued.TranslateLang = VoiceWizardWindow.MainFormGlobal.comboBox3.Text.ToString();
+                            TTSMessageQueued.STTMode = "Azure";
+                            TTSMessageQueued.AzureTranslateText = "[ERROR]";
+                        });
+
+
+                        if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonQueueSystem.Checked == true)
+                        {
+                            TTSMessageQueue.Enqueue(TTSMessageQueued);
+                        }
+                        else
+                        {
+                            Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(TTSMessageQueued));
+                        }
 
 
 
@@ -220,7 +288,9 @@ namespace OSCVRCWiz
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Speech Setup Failed: Make sure that you have setup your Azure Key and Region in the Provider tab (click the 'apply' buttons to apply changes) Reason:" + ex.Message.ToString());
+               // MessageBox.Show("Speech Setup Failed: Make sure that you have setup your Azure Key and Region in the Provider tab (click the 'apply' buttons to apply changes) Reason:" + ex.Message.ToString());
+                OutputText.outputLog("[Azure Speech Setup Failed: " + ex.Message + "]", Color.Red);
+                OutputText.outputLog("[ Make sure that you have setup your Azure Key and Region in the Provider tab (click the 'apply' buttons to apply changes). Make sure that you have an input and output device selected in Settings > Audio]", Color.DarkOrange);
 
             }
         }
@@ -234,6 +304,11 @@ namespace OSCVRCWiz
 
                 if (VoiceWizardWindow.MainFormGlobal.rjToggleButton4.Checked == false)
                 {
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                        OSC.OSCSender.Send(sttListening);
+                    }
                     if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
                     {
                         OSCListener.pauseBPM = true;
@@ -245,7 +320,33 @@ namespace OSCVRCWiz
                     var speechRecognitionResult = await speechRecognizer1.RecognizeOnceAsync();
                     var text = speechRecognitionResult.Text; //Dictation string
 
-                    Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text,"Azure"));
+                   // Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text,"Azure"));
+                    TTSMessageQueue.TTSMessage TTSMessageQueued = new TTSMessageQueue.TTSMessage();
+                    VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+                    {
+                        TTSMessageQueued.text = text;
+                        TTSMessageQueued.TTSMode = VoiceWizardWindow.MainFormGlobal.comboBoxTTSMode.Text.ToString();
+                        TTSMessageQueued.Voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString();
+                        TTSMessageQueued.Accent = VoiceWizardWindow.MainFormGlobal.comboBox5.Text.ToString();
+                        TTSMessageQueued.Style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString();
+                        TTSMessageQueued.Pitch = VoiceWizardWindow.MainFormGlobal.trackBarPitch.Value;
+                        TTSMessageQueued.Speed = VoiceWizardWindow.MainFormGlobal.trackBarSpeed.Value;
+                        TTSMessageQueued.Volume = VoiceWizardWindow.MainFormGlobal.trackBarVolume.Value;
+                        TTSMessageQueued.SpokenLang = VoiceWizardWindow.MainFormGlobal.comboBox4.Text.ToString();
+                        TTSMessageQueued.TranslateLang = VoiceWizardWindow.MainFormGlobal.comboBox3.Text.ToString();
+                        TTSMessageQueued.STTMode = "Azure";
+                        TTSMessageQueued.AzureTranslateText = "[ERROR]";
+                    });
+
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonQueueSystem.Checked == true)
+                    {
+                        TTSMessageQueue.Enqueue(TTSMessageQueued);
+                    }
+                    else
+                    {
+                        Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(TTSMessageQueued));
+                    }
 
                 }
 
@@ -257,7 +358,14 @@ namespace OSCVRCWiz
                     //  var ot = new OutputText();
                     OutputText.outputLog("[Azure Continuous Listening Enabled]");
 
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                        OSC.OSCSender.Send(sttListening);
+                    }
+
                     await speechRecognizer1.StartContinuousRecognitionAsync();
+
                 }
                 else if (continuousListening == true)
                 {
@@ -266,12 +374,23 @@ namespace OSCVRCWiz
                     System.Diagnostics.Debug.WriteLine("continuousListening Disabled------------------------------");
                     await speechRecognizer1.StopContinuousRecognitionAsync();
                     OutputText.outputLog("[Azure Continuous Listening Disabled]");
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                        OSC.OSCSender.Send(sttListening);
+                    }
                 }
 
             }
             catch (Exception ex)
             {
-                MessageBox.Show("STTTS Failed: " + ex.Message.ToString());
+                MessageBox.Show("Azure STTTS Failed: " + ex.Message.ToString());
+
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
+                }
 
             }
         }
@@ -295,6 +414,12 @@ namespace OSCVRCWiz
 
                     }
 
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                        OSC.OSCSender.Send(sttListening);
+                    }
+
                     var speechRecognitionResult = await translationRecognizer1.RecognizeOnceAsync();
 
                     if (speechRecognitionResult.Reason == ResultReason.TranslatedSpeech)
@@ -306,7 +431,35 @@ namespace OSCVRCWiz
                     var text = speechRecognitionResult.Text.ToString(); //Dictation string; Global string used to keep track of result text for default azure speech to text
                     string translatedString = speechRecognitionResult.Translations[toLanguage]; //Global string used to keep track of result text for translation azure speech to text
 
-                    Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "Azure Translate",translatedString));
+                   // Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "Azure Translate",translatedString));
+
+
+                    TTSMessageQueue.TTSMessage TTSMessageQueued = new TTSMessageQueue.TTSMessage();
+                    VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+                    {
+                        TTSMessageQueued.text = text;
+                        TTSMessageQueued.TTSMode = VoiceWizardWindow.MainFormGlobal.comboBoxTTSMode.Text.ToString();
+                        TTSMessageQueued.Voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString();
+                        TTSMessageQueued.Accent = VoiceWizardWindow.MainFormGlobal.comboBox5.Text.ToString();
+                        TTSMessageQueued.Style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString();
+                        TTSMessageQueued.Pitch = VoiceWizardWindow.MainFormGlobal.trackBarPitch.Value;
+                        TTSMessageQueued.Speed = VoiceWizardWindow.MainFormGlobal.trackBarSpeed.Value;
+                        TTSMessageQueued.Volume = VoiceWizardWindow.MainFormGlobal.trackBarVolume.Value;
+                        TTSMessageQueued.SpokenLang = VoiceWizardWindow.MainFormGlobal.comboBox4.Text.ToString();
+                        TTSMessageQueued.TranslateLang = VoiceWizardWindow.MainFormGlobal.comboBox3.Text.ToString();
+                        TTSMessageQueued.STTMode = "Azure Translate";
+                        TTSMessageQueued.AzureTranslateText = translatedString;
+                    });
+
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonQueueSystem.Checked == true)
+                    {
+                        TTSMessageQueue.Enqueue(TTSMessageQueued);
+                    }
+                    else
+                    {
+                        Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(TTSMessageQueued));
+                    }
 
 
                 }
@@ -316,6 +469,12 @@ namespace OSCVRCWiz
                     System.Diagnostics.Debug.WriteLine("continuousListening Enabled------------------------------");
 
                     OutputText.outputLog("[Azure Continuous Listening Enabled (Translating)]");
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                        OSC.OSCSender.Send(sttListening);
+                    }
 
                     await translationRecognizer1.StartContinuousRecognitionAsync();
 
@@ -330,12 +489,24 @@ namespace OSCVRCWiz
                     //   speechRecognizer1.Dispose();
                     //  var ot = new OutputText();
                     OutputText.outputLog("[Azure Continuous Listening Disabled (Translating)]");
+
+                    if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                    {
+                        var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                        OSC.OSCSender.Send(sttListening);
+                    }
                 }
 
            }
             catch (Exception ex)
             {
-                OutputText.outputLog("Translation STTTS Failed: Most likely your voice was not picked up by your microphone. Reason: " + ex.Message.ToString());
+                OutputText.outputLog("Azure Translation STTTS Failed: Most likely your voice was not picked up by your microphone. Reason: " + ex.Message.ToString());
+
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
+                }
 
             }
         }
@@ -350,6 +521,12 @@ namespace OSCVRCWiz
                 await translationRecognizer1.StopContinuousRecognitionAsync();
                 await speechRecognizer1.StopContinuousRecognitionAsync();
                 OutputText.outputLog("[Azure Continuous Listening Disabled (Any)]");
+
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
+                }
             }
         }
 

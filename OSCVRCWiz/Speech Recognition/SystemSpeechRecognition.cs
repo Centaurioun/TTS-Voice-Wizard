@@ -15,6 +15,9 @@ using static System.Net.Mime.MediaTypeNames;
 using System.Reflection;
 using OSCVRCWiz.Text;
 using NAudio.Wave;
+using System.Diagnostics;
+using OSCVRCWiz.Resources;
+using CoreOSC;
 
 
 //using NAudio.Wave;
@@ -90,7 +93,12 @@ namespace OSCVRCWiz
             waveIn.DataAvailable += WaveInOnDataAvailable;
 
             OutputText.outputLog("[System Speech Started Listening]");
-            waveIn?.StartRecording();
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                    OSC.OSCSender.Send(sttListening);
+                }
+                waveIn?.StartRecording();
             rec.SetInputToAudioStream(audioStream, new(48000, System.Speech.AudioFormat.AudioBitsPerSample.Sixteen, System.Speech.AudioFormat.AudioChannel.Mono));
             rec.RecognizeAsync(RecognizeMode.Multiple);
 
@@ -100,6 +108,11 @@ namespace OSCVRCWiz
 
                 OutputText.outputLog("[System Speech Recognizer Error: " + ex.Message + "]", Color.Red);
                 listeningCurrently = false;
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
+                }
             }
 
         }
@@ -107,11 +120,39 @@ namespace OSCVRCWiz
         {
             System.Diagnostics.Debug.WriteLine("Recognized text: " + e.Result.Text);
             string text = e.Result.Text.ToString();
-            Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "System Speech"));
+           // Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(text, "System Speech"));
+
+            TTSMessageQueue.TTSMessage TTSMessageQueued = new TTSMessageQueue.TTSMessage();
+            VoiceWizardWindow.MainFormGlobal.Invoke((MethodInvoker)delegate ()
+            {
+                TTSMessageQueued.text = text;
+                TTSMessageQueued.TTSMode = VoiceWizardWindow.MainFormGlobal.comboBoxTTSMode.Text.ToString();
+                TTSMessageQueued.Voice = VoiceWizardWindow.MainFormGlobal.comboBox2.Text.ToString();
+                TTSMessageQueued.Accent = VoiceWizardWindow.MainFormGlobal.comboBox5.Text.ToString();
+                TTSMessageQueued.Style = VoiceWizardWindow.MainFormGlobal.comboBox1.Text.ToString();
+                TTSMessageQueued.Pitch = VoiceWizardWindow.MainFormGlobal.trackBarPitch.Value;
+                TTSMessageQueued.Speed = VoiceWizardWindow.MainFormGlobal.trackBarSpeed.Value;
+                TTSMessageQueued.Volume = VoiceWizardWindow.MainFormGlobal.trackBarVolume.Value;
+                TTSMessageQueued.SpokenLang = VoiceWizardWindow.MainFormGlobal.comboBox4.Text.ToString();
+                TTSMessageQueued.TranslateLang = VoiceWizardWindow.MainFormGlobal.comboBox3.Text.ToString();
+                TTSMessageQueued.STTMode = "System Speech";
+                TTSMessageQueued.AzureTranslateText = "[ERROR]";
+            });
+
+
+            if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonQueueSystem.Checked == true)
+            {
+                TTSMessageQueue.Enqueue(TTSMessageQueued);
+            }
+            else
+            {
+                Task.Run(() => VoiceWizardWindow.MainFormGlobal.MainDoTTS(TTSMessageQueued));
+            }
         }
 
         private static void WaveInOnDataAvailable(object? sender, WaveInEventArgs e)
         {
+           // Debug.WriteLine("audio found");
             audioStream.Write(e.Buffer, 0, e.BytesRecorded);
 
         }
@@ -123,15 +164,25 @@ namespace OSCVRCWiz
                 {
                 listeningCurrently = true;
                 Task.Run(() => startListeningNow());
-
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", true);
+                    OSC.OSCSender.Send(sttListening);
                 }
+
+            }
                 else
                 {
                 OutputText.outputLog("[System Speech Stopped Listening]");
                 listeningCurrently = false;
                 waveIn.StopRecording();
-                rec.RecognizeAsyncStop();             
+                rec.RecognizeAsyncStop();
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
                 }
+            }
 
 
 
@@ -145,6 +196,11 @@ namespace OSCVRCWiz
                 listeningCurrently = false;
                 waveIn.StopRecording();
                 rec.RecognizeAsyncStop();
+                if (VoiceWizardWindow.MainFormGlobal.rjToggleButtonOSC.Checked == true || VoiceWizardWindow.MainFormGlobal.rjToggleButtonChatBox.Checked == true)
+                {
+                    var sttListening = new OscMessage("/avatar/parameters/stt_listening", false);
+                    OSC.OSCSender.Send(sttListening);
+                }
             }
         }
     }
